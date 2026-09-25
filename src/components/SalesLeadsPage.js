@@ -15,6 +15,7 @@ import {
   Send,
   Trash2,
   Edit3,
+  Eye,
   Phone,
   Mail,
   UserCheck,
@@ -485,6 +486,13 @@ export default function SalesLeadsPage({ isAdmin = false }) {
                           </a>
                         )}
 
+                        <Link
+                          href={`${basePath}/${lead.id}`}
+                          className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20 transition"
+                          title="View Lead Details"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </Link>
                         <Link
                           href={`${basePath}/edit/${lead.id}`}
                           className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 transition"
