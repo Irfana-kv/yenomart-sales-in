@@ -475,7 +475,9 @@ export async function exportCustomerCartExcel({
   currentRowIdx++;
 
   // ── ROW: LARGE EXECUTIVE FINAL TOTAL BOX ──
-  const finalTotalAmount = subtotals?.grandTotal ?? subtotals?.order_price ?? calculatedGrandTotal;
+  const numDeliveryCharge = Number(deliveryCharge) || 0;
+  const productSubtotal = subtotals?.subtotalOrderPrice ?? subtotals?.order_price ?? calculatedGrandTotal;
+  const finalTotalAmount = productSubtotal + numDeliveryCharge;
 
   const totalRow = ws.getRow(currentRowIdx);
   totalRow.height = 36;

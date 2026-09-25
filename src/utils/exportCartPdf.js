@@ -388,7 +388,7 @@ export async function exportCustomerCartPdf({
 
   const totalItemCount = cartItems.length;
   const totalUnitsCount = cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
-  const productSubtotalINR = subtotals?.grandTotal ?? subtotals?.subtotalOrderPrice ?? subtotals?.order_price ?? cartItems.reduce((sum, item) => sum + Number(item.order_total || item.total || ((item.rule_price ?? item.price ?? 0) * (item.quantity || 1))), 0);
+  const productSubtotalINR = subtotals?.subtotalOrderPrice ?? subtotals?.order_price ?? cartItems.reduce((sum, item) => sum + Number(item.order_total || item.total || ((item.rule_price ?? item.price ?? 0) * (item.quantity || 1))), 0);
   const finalGrandTotalINR = productSubtotalINR + numDeliveryCharge;
 
   doc.text(`Items: ${totalItemCount} SKUs (${totalUnitsCount} Units)`, rightX + 4, sY);

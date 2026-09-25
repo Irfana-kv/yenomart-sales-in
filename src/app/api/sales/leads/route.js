@@ -206,7 +206,24 @@ export async function GET(request) {
       lead.items = itemsMap.get(lead.id) || [];
     });
 
-    return NextResponse.json({ leads: safeLeads }, { status: 200 });
+    const totalLeads = safeLeads.length;
+    const pipelineValue = safeLeads
+      .filter((l) => l.status !== 'Lost' && l.status !== 'Converted')
+      .reduce((sum, l) => sum + (parseFloat(l.total_price) || 0), 0);
+    const convertedValue = safeLeads
+      .filter((l) => l.status === 'Converted')
+      .reduce((sum, l) => sum + (parseFloat(l.total_price) || 0), 0);
+    const totalUnits = safeLeads
+      .reduce((sum, l) => sum + (parseInt(l.quantity || '0', 10) || 0), 0);
+
+    const summary = {
+      totalLeads,
+      pipelineValue,
+      convertedValue,
+      totalUnits
+    };
+
+    return NextResponse.json({ leads: safeLeads, summary }, { status: 200 });
   } catch (error) {
     console.error('Failed to fetch sales leads:', error);
     return NextResponse.json({ error: 'Failed to fetch sales leads', details: error?.message || String(error) }, { status: 500 });

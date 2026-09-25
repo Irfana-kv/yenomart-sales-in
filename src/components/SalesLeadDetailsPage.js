@@ -198,6 +198,9 @@ export default function SalesLeadDetailsPage({ leadId, isAdmin = false }) {
         customer,
         cartItems: processedProducts,
         subtotals,
+        deliveryCharge: Number(deliveryCharge) || 0,
+        freightType,
+        shippingNote,
       });
       setToast({ type: 'success', message: 'Quotation Excel (.xlsx) downloaded successfully.' });
     } catch (err) {
