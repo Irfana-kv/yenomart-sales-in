@@ -123,6 +123,46 @@ export default function SalesLeadFormPage({ leadId = null, isAdmin = false }) {
     return () => clearTimeout(timer);
   }, [productSearch]);
 
+  
+  // Auto fetch variants for any item row when product_id is set
+  useEffect(() => {
+    items.forEach((itemObj, idx) => {
+      if (itemObj.product_id && (!itemObj.availableVariants || itemObj.availableVariants.length === 0)) {
+        const rawId = itemObj.product_id;
+        const match = String(rawId).match(/(?:productdetail\/[^\/]*?|[\/\-])(\d{10,15})/);
+        const cleanId = match ? match[1] : (String(rawId).trim().match(/^\d{10,15}$/) ? String(rawId).trim() : rawId);
+
+        fetch('/api/sales/products?q=' + encodeURIComponent(cleanId) + '&limit=1')
+          .then((r) => r.json())
+          .then((prods) => {
+            if (Array.isArray(prods) && prods.length > 0) {
+              const prodObj = prods[0];
+              const vars = prodObj.variants || [];
+              const matchedVariant = vars.find(
+                (v) => (itemObj.product_sku_id && String(v.id) === String(itemObj.product_sku_id)) ||
+                       (itemObj.product_sku_id && String(v.skuId) === String(itemObj.product_sku_id)) ||
+                       v.name === itemObj.size ||
+                       String(v.skuId || v.id) === String(itemObj.size)
+              ) || vars[0] || null;
+
+              setItems((prev) => {
+                const next = [...prev];
+                if (next[idx] && (!next[idx].availableVariants || next[idx].availableVariants.length === 0)) {
+                  next[idx] = {
+                    ...next[idx],
+                    selectedProduct: prodObj,
+                    selectedVariant: matchedVariant,
+                    availableVariants: vars
+                  };
+                }
+                return next;
+              });
+            }
+          })
+          .catch(() => null);
+      }
+    });
+  }, [items.map((it) => it.product_id).join(',')]);
   // Click outside listener for product search dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -177,35 +217,42 @@ export default function SalesLeadFormPage({ leadId = null, isAdmin = false }) {
             setItems(loadedItems);
 
             // Async load selected product info and variants for tier cards & dropdowns
-            loadedItems.forEach((itemObj, idx) => {
+            loadedItems.forEach(async (itemObj, idx) => {
               if (itemObj.product_id) {
-                fetch(`/api/sales/products?q=${encodeURIComponent(itemObj.product_id)}&limit=1`)
-                  .then((r) => r.json())
-                  .then((prods) => {
-                    if (Array.isArray(prods) && prods.length > 0) {
-                      const prodObj = prods[0];
-                      const vars = prodObj.variants || [];
-                      const matchedVariant = vars.find(
-                        (v) => (itemObj.product_sku_id && String(v.id) === String(itemObj.product_sku_id)) ||
-                               v.name === itemObj.size ||
-                               String(v.skuId || v.id) === String(itemObj.size)
-                      ) || vars[0] || null;
+                const rawId = itemObj.product_id;
+                const match = String(rawId).match(/(?:productdetail\/[^\/]*?|[\/\-])(\d{10,15})/);
+                const cleanId = match ? match[1] : (String(rawId).trim().match(/^\d{10,15}$/) ? String(rawId).trim() : rawId);
 
-                      setItems((prev) => {
-                        const next = [...prev];
-                        if (next[idx]) {
-                          next[idx] = {
-                            ...next[idx],
-                            selectedProduct: prodObj,
-                            selectedVariant: matchedVariant,
-                            availableVariants: vars
-                          };
-                        }
-                        return next;
-                      });
-                    }
-                  })
-                  .catch(() => null);
+                try {
+                  const r = await fetch('/api/sales/products?q=' + encodeURIComponent(cleanId) + '&limit=1');
+                  const prods = await r.json();
+                  if (Array.isArray(prods) && prods.length > 0) {
+                    const prodObj = prods[0];
+                    const vars = prodObj.variants || [];
+                    const matchedVariant = vars.find(
+                      (v) => (itemObj.product_sku_id && String(v.id) === String(itemObj.product_sku_id)) ||
+                             (itemObj.product_sku_id && String(v.skuId) === String(itemObj.product_sku_id)) ||
+                             v.name === itemObj.size ||
+                             String(v.skuId || v.id) === String(itemObj.size) ||
+                             (itemObj.size && v.name && v.name.toLowerCase().includes(itemObj.size.toLowerCase()))
+                    ) || vars[0] || null;
+
+                    setItems((prev) => {
+                      const next = [...prev];
+                      if (next[idx]) {
+                        next[idx] = {
+                          ...next[idx],
+                          selectedProduct: prodObj,
+                          selectedVariant: matchedVariant,
+                          availableVariants: vars
+                        };
+                      }
+                      return next;
+                    });
+                  }
+                } catch (err) {
+                  console.error('Failed to load item variants:', err);
+                }
               }
             });
           } else {
@@ -791,6 +838,7 @@ export default function SalesLeadFormPage({ leadId = null, isAdmin = false }) {
                           onChange={(e) => updateItemField(idx, 'variant', e.target.value)}
                           className="w-full px-3.5 py-2 bg-slate-900 border border-teal-500/40 rounded-xl text-xs font-bold text-teal-300 focus:outline-none focus:border-teal-400"
                         >
+                          <option value="">-- Select Variant ({item.availableVariants.length} available) --</option>
                           {item.availableVariants.map((v) => (
                             <option key={v.skuId || v.id} value={v.skuId || v.id}>
                               {v.name} (₹{v.price})

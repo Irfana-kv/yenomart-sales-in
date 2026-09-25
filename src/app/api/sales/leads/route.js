@@ -40,7 +40,10 @@ async function syncLeadToCustomerCart(leadId, userId, creatorId, itemsToSave) {
     for (const item of itemsToSave) {
       if (!item.product_id) continue;
       const itemQty = parseInt(item.quantity || '1', 10);
-      const itemPrice = parseFloat(item.unit_price || '0');
+      let itemPrice = parseFloat(item.unit_price || '0');
+      if ((isNaN(itemPrice) || itemPrice <= 0) && item.total_price !== undefined && item.total_price !== null && parseFloat(item.total_price) > 0) {
+        itemPrice = parseFloat(item.total_price) / itemQty;
+      }
 
       await prisma.$executeRawUnsafe(
         `INSERT INTO "Cart" (user_id, "productId", "productSkuId", price, quantity, image, is_from_lead, lead_id, created_by_id, created_at, updated_at)
@@ -339,7 +342,10 @@ export async function POST(request) {
     const insertedItems = [];
     for (const item of itemsToSave) {
       const itemQty = parseInt(item.quantity || '1', 10);
-      const itemPrice = parseFloat(item.unit_price || '0');
+      let itemPrice = parseFloat(item.unit_price || '0');
+      if ((isNaN(itemPrice) || itemPrice <= 0) && item.total_price !== undefined && item.total_price !== null && parseFloat(item.total_price) > 0) {
+        itemPrice = parseFloat(item.total_price) / itemQty;
+      }
       const itemTotal = item.total_price !== undefined && item.total_price !== null && item.total_price !== ''
         ? parseFloat(item.total_price)
         : (itemQty * itemPrice);
@@ -482,7 +488,10 @@ export async function PATCH(request) {
 
         for (const item of itemsToSave) {
           const itemQty = parseInt(item.quantity || '1', 10);
-          const itemPrice = parseFloat(item.unit_price || '0');
+          let itemPrice = parseFloat(item.unit_price || '0');
+      if ((isNaN(itemPrice) || itemPrice <= 0) && item.total_price !== undefined && item.total_price !== null && parseFloat(item.total_price) > 0) {
+        itemPrice = parseFloat(item.total_price) / itemQty;
+      }
           const itemTotal = item.total_price !== undefined && item.total_price !== null && item.total_price !== ''
             ? parseFloat(item.total_price)
             : (itemQty * itemPrice);

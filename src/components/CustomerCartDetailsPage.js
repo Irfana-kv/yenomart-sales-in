@@ -70,7 +70,8 @@ export default function CustomerCartDetailsPage({
         .filter((t) => qty >= (t.minQuantity || 1))
         .sort((a, b) => (b.minQuantity || 1) - (a.minQuantity || 1))[0] || tiers[0] || null;
 
-      const rulePrice = tier?.price ?? pricing.finalPrice ?? baseInr;
+      const isLeadItem = Boolean(item.is_from_lead || item.lead_id) && item.price !== null && item.price !== undefined && Number(item.price) > 0;
+      const rulePrice = isLeadItem ? Number(item.price) : (tier?.price ?? pricing.finalPrice ?? baseInr);
       const orderTotal = rulePrice * qty;
       const totalBaseCny = baseCny * qty;
       const totalInrAdjusted = baseInr * qty;

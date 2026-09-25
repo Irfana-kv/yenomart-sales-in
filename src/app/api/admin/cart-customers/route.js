@@ -440,6 +440,10 @@ export async function GET(request) {
       },
       select: {
         quantity: true,
+        price: true,
+        is_from_lead: true,
+        lead_id: true,
+        created_by_id: true,
         productId: true,
         productSkuId: true,
         product: {
@@ -574,6 +578,9 @@ export async function GET(request) {
       }, new Date(0));
 
       const itemsPreview = userCartItems.map(item => {
+        const itemPrice = (item.is_from_lead || item.lead_id) && item.price !== null && item.price !== undefined && parseFloat(item.price) > 0
+          ? parseFloat(item.price)
+          : (item.price || item.product?.price || 0);
         const itemImage =
           item.image ||
           item.sku?.s3Url ||
@@ -587,7 +594,7 @@ export async function GET(request) {
           productId: item.productId,
           title: item.product?.title || item.product?.en_title || 'Unnamed Product',
           image: itemImage,
-          price: item.price || item.product?.price || 0,
+          price: itemPrice,
           quantity: item.quantity || 1,
         };
       });

@@ -52,8 +52,9 @@ model User {
   profile_completed            Boolean        @default(false)
   verified_at                  DateTime?
   searchKeywords               SearchKeyword[]
-  customerLeads                SalesLead[] @relation("CustomerLeads")
-  creatorLeads                 SalesLead[] @relation("CreatorLeads")
+  customerLeads                SalesLead[]    @relation("CustomerLeads")
+  creatorLeads                 SalesLead[]    @relation("CreatorLeads")
+  createdCarts                 Cart[]         @relation("CartCreator")
   @@unique([email])
   @@unique([phone])
 }
@@ -1402,6 +1403,7 @@ model SalesLead {
   user    User?           @relation("CustomerLeads", fields: [user_id], references: [id], onDelete: SetNull)
   creator User?           @relation("CreatorLeads", fields: [created_by_id], references: [id], onDelete: SetNull)
   items   SalesLeadItem[]
+  carts   Cart[]
 
   @@index([user_id])
   @@index([created_by_id])

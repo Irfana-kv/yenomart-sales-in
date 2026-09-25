@@ -60,8 +60,21 @@ export async function GET(request, { params }) {
       orderBy: { updated_at: 'desc' },
     });
 
+    // Fetch creator details for items created from leads
+    const creatorIds = Array.from(new Set(cartItems.map(i => i.created_by_id).filter(Boolean)));
+    let creatorMap = new Map();
+    if (creatorIds.length > 0) {
+      const creators = await prisma.$queryRawUnsafe(
+        `SELECT id, name, email, phone, user_type FROM "User" WHERE id IN (${creatorIds.join(',')})`
+      ).catch(() => []);
+      if (Array.isArray(creators)) {
+        creatorMap = new Map(creators.map(c => [c.id, c]));
+      }
+    }
+
     const items = cartItems.map((item) => {
-      const unitPrice = item.price || item.product?.price || 0;
+      const isLeadPrice = (item.is_from_lead || item.lead_id) && item.price !== null && item.price !== undefined && parseFloat(item.price) > 0;
+      const unitPrice = isLeadPrice ? parseFloat(item.price) : (item.price && parseFloat(item.price) > 0 ? parseFloat(item.price) : (item.product?.price || 0));
       const quantity = item.quantity || 1;
       const subtotal = unitPrice * quantity;
       const image =
@@ -76,6 +89,10 @@ export async function GET(request, { params }) {
         id: item.id,
         productId: item.productId,
         productSkuId: item.productSkuId,
+        is_from_lead: item.is_from_lead || false,
+        lead_id: item.lead_id || null,
+        created_by_id: item.created_by_id || null,
+        creator: item.created_by_id ? (creatorMap.get(item.created_by_id) || null) : null,
         title: item.product?.title || item.product?.en_title || 'Unnamed Product',
         slug: item.product?.slug || '',
         image,
