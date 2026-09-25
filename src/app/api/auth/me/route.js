@@ -17,8 +17,9 @@ export async function GET(req) {
       select: { id: true, name: true, email: true, phone: true, user_type: true, created_at: true }
     });
 
-    if (!user || user.user_type !== 'sales') {
-      return NextResponse.json({ error: 'Unauthorized sales account' }, { status: 403 });
+    const allowedTypes = ['sales', 'admin', 'staff', 'superadmin'];
+    if (!user || !allowedTypes.includes(user.user_type)) {
+      return NextResponse.json({ error: 'Unauthorized user account' }, { status: 403 });
     }
 
     return NextResponse.json({ user }, { status: 200 });

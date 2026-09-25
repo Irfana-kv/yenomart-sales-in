@@ -35,13 +35,40 @@ export default function SalesLeadsPage({ isAdmin = false }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [salesReps, setSalesReps] = useState([]);
+  const [selectedSalesRepFilter, setSelectedSalesRepFilter] = useState('All');
 
   const basePath = isAdmin ? '/adminpanel/sales-leads' : '/sales-leads';
+  // Fetch logged in user and sales representatives list
+  useEffect(() => {
+    const fetchAuthUser = async () => {
+      try {
+        const meRes = await fetch('/api/auth/me');
+        const meData = await meRes.json();
+        if (meData?.user) setCurrentUser(meData.user);
+
+        // Fetch sales reps list for Admin filtering
+        const repsRes = await fetch('/api/sales/customers');
+        const repsData = await repsRes.json();
+        if (Array.isArray(repsData)) {
+          setSalesReps(repsData.filter((r) => r.user_type === 'sales' || r.user_type === 'admin'));
+        }
+      } catch (err) {
+        console.error('Failed to fetch user auth session:', err);
+      }
+    };
+    fetchAuthUser();
+  }, []);
 
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/sales/leads?search=${encodeURIComponent(search)}&status=${encodeURIComponent(statusFilter)}`);
+      let url = `/api/sales/leads?search=${encodeURIComponent(search)}&status=${encodeURIComponent(statusFilter)}`;
+      if (selectedSalesRepFilter && selectedSalesRepFilter !== 'All') {
+        url += `&sales_rep_id=${selectedSalesRepFilter}`;
+      }
+      const res = await fetch(url);
       const data = await res.json();
       if (data.leads) {
         setLeads(data.leads);
@@ -56,7 +83,7 @@ export default function SalesLeadsPage({ isAdmin = false }) {
 
   useEffect(() => {
     fetchLeads();
-  }, [search, statusFilter]);
+  }, [search, statusFilter, selectedSalesRepFilter]);
 
   const handleStatusChange = async (leadId, newStatus) => {
     try {
@@ -112,8 +139,23 @@ export default function SalesLeadsPage({ isAdmin = false }) {
               <Target className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-white tracking-tight">Sales Leads</h1>
-              <p className="text-xs text-slate-400 font-medium">Create and track customer product inquiries & orders</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl font-black text-white tracking-tight">Sales Leads</h1>
+                {(currentUser?.user_type === 'admin' || currentUser?.user_type === 'superadmin' || isAdmin) ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                    👑 Admin View (All Leads)
+                  </span>
+                ) : currentUser ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+                    👤 My Leads ({currentUser.name || currentUser.email})
+                  </span>
+                ) : null}
+              </div>
+              <p className="text-xs text-slate-400 font-medium">
+                {(currentUser?.user_type === 'admin' || currentUser?.user_type === 'superadmin' || isAdmin)
+                  ? 'Viewing all sales leads created across the portal'
+                  : 'Manage and track product inquiries entered by you'}
+              </p>
             </div>
           </div>
         </div>

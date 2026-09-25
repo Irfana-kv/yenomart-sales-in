@@ -4,12 +4,18 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'yenomart_sales_jwt_secret_2026';
 
-function getLoggedInUserId(request) {
+function getLoggedInUser(request) {
   try {
-    const token = request.cookies.get('sales_token')?.value;
+    let token = request.cookies.get('sales_token')?.value;
+    if (!token) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
     if (token) {
       const decoded = jwt.verify(token, JWT_SECRET);
-      return decoded?.id || null;
+      return decoded || null; // { id, email, name, user_type }
     }
   } catch (err) {}
   return null;
@@ -60,6 +66,15 @@ export async function GET(request) {
     const id = searchParams.get('id');
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
+    const filterSalesRepId = searchParams.get('sales_rep_id');
+
+    const currentUser = getLoggedInUser(request);
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Not authenticated', leads: [] }, { status: 401 });
+    }
+
+    const isAdmin = currentUser?.user_type === 'admin' || currentUser?.user_type === 'superadmin';
 
     if (id) {
       const leadIdNum = parseInt(id, 10);
@@ -74,6 +89,11 @@ export async function GET(request) {
       }
 
       const lead = leads[0];
+
+      // Role check: Sales person can ONLY view their own lead
+      if (!isAdmin && lead.created_by_id && lead.created_by_id !== currentUser.id) {
+        return NextResponse.json({ error: 'Access Denied: You do not have permission to view this lead.' }, { status: 403 });
+      }
 
       // Fetch user and creator info
       const userIds = [lead.user_id, lead.created_by_id].filter(Boolean);
@@ -102,10 +122,25 @@ export async function GET(request) {
       return NextResponse.json({ lead }, { status: 200 });
     }
 
-    // Build WHERE clause
+    // Build WHERE clause with Strict Role Scoping:
+    // Admin -> Can view ALL leads (or filter by specific sales_rep_id)
+    // Sales Person -> Can ONLY view leads created by them (created_by_id = currentUser.id)
     const conditions = [];
     const params = [];
     let paramIdx = 1;
+
+    if (isAdmin) {
+      if (filterSalesRepId && !isNaN(parseInt(filterSalesRepId, 10))) {
+        conditions.push(`created_by_id = $${paramIdx}`);
+        params.push(parseInt(filterSalesRepId, 10));
+        paramIdx++;
+      }
+    } else {
+      // Sales person strictly sees only their leads
+      conditions.push(`created_by_id = $${paramIdx}`);
+      params.push(currentUser.id);
+      paramIdx++;
+    }
 
     if (search) {
       conditions.push(`(customer_name ILIKE $${paramIdx} OR email ILIKE $${paramIdx} OR phone ILIKE $${paramIdx})`);
@@ -207,7 +242,12 @@ export async function POST(request) {
       );
     }
 
-    const creatorId = created_by_id ? parseInt(created_by_id, 10) : getLoggedInUserId(request);
+    const currentUser = getLoggedInUser(request);
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Authentication required to create a lead.' }, { status: 401 });
+    }
+
+    const creatorId = created_by_id ? parseInt(created_by_id, 10) : currentUser.id;
 
     let itemsToSave = [];
     if (Array.isArray(body.items) && body.items.length > 0) {
@@ -347,7 +387,27 @@ export async function PATCH(request) {
     }
 
     const leadId = parseInt(id, 10);
-    const creatorId = created_by_id ? parseInt(created_by_id, 10) : getLoggedInUserId(request);
+    const currentUser = getLoggedInUser(request);
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Authentication required to update lead.' }, { status: 401 });
+    }
+
+    const isAdmin = currentUser.user_type === 'admin' || currentUser.user_type === 'superadmin';
+
+    // Verify ownership before updating
+    const existingLeads = await prisma.$queryRawUnsafe(
+      `SELECT id, created_by_id FROM sales_leads WHERE id = $1`,
+      leadId
+    );
+
+    if (Array.isArray(existingLeads) && existingLeads.length > 0) {
+      const lead = existingLeads[0];
+      if (!isAdmin && lead.created_by_id && lead.created_by_id !== currentUser.id) {
+        return NextResponse.json({ error: 'Access Denied: You do not have permission to modify this lead.' }, { status: 403 });
+      }
+    }
+
+    const creatorId = created_by_id ? parseInt(created_by_id, 10) : currentUser.id;
 
     if (Array.isArray(body.items) && body.items.length > 0) {
       const itemsToSave = body.items.filter((it) => it.product_name && it.product_name.trim());
@@ -519,6 +579,26 @@ export async function DELETE(request) {
     }
 
     const leadId = parseInt(id, 10);
+    const currentUser = getLoggedInUser(request);
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Authentication required to delete lead.' }, { status: 401 });
+    }
+
+    const isAdmin = currentUser.user_type === 'admin' || currentUser.user_type === 'superadmin';
+
+    // Verify ownership before deleting
+    const existingLeads = await prisma.$queryRawUnsafe(
+      `SELECT id, created_by_id FROM sales_leads WHERE id = $1`,
+      leadId
+    );
+
+    if (Array.isArray(existingLeads) && existingLeads.length > 0) {
+      const lead = existingLeads[0];
+      if (!isAdmin && lead.created_by_id && lead.created_by_id !== currentUser.id) {
+        return NextResponse.json({ error: 'Access Denied: You do not have permission to delete this lead.' }, { status: 403 });
+      }
+    }
+
     await prisma.$executeRawUnsafe(`DELETE FROM "Cart" WHERE lead_id = $1`, leadId);
     await prisma.$executeRawUnsafe(`DELETE FROM sales_lead_items WHERE lead_id = $1`, leadId);
     await prisma.$executeRawUnsafe(`DELETE FROM sales_leads WHERE id = $1`, leadId);

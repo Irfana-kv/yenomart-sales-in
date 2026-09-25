@@ -24,8 +24,9 @@ export async function POST(req) {
     }
 
     // Enforce Sales user authorization
-    if (user.user_type !== 'sales') {
-      return NextResponse.json({ error: 'Access Denied: Only authorized Sales Users can log into the Sales Dashboard.' }, { status: 403 });
+    const allowedTypes = ['sales', 'admin', 'staff', 'superadmin'];
+    if (!allowedTypes.includes(user.user_type)) {
+      return NextResponse.json({ error: 'Access Denied: Only authorized Sales & Admin users can log into this portal.' }, { status: 403 });
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
