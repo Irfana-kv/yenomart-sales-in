@@ -1,0 +1,1433 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                           Int            @id @default(autoincrement())
+  name                         String?
+  email                        String?
+  access_token                 String?
+  address                      String?
+  avatar                       String?
+  avatar_original              String?
+  balance                      Float          @default(0.0)
+  banned                       Boolean        @default(false)
+  city                         String?
+  country                      String?
+  created_at                   DateTime       @default(now())
+  customer_package_id          Int?
+  device_token                 String?
+  email_verified_at            DateTime?
+  new_email_verificiation_code String?
+  password                     String?
+  country_code                 String?
+  phone                        String?
+  postal_code                  String?
+  provider                     String?
+  provider_id                  String?
+  referral_code                String?        @unique
+  referred_by                  Int?           @default(0)
+  refresh_token                String?
+  remaining_uploads            Int            @default(0)
+  remember_token               String?
+  state                        String?
+  updated_at                   DateTime       @updatedAt
+  user_type                    String         @default("customer")
+  verification_code            String?
+  verification_code_expiry     DateTime?
+  addresses                    Address[]
+  orders                       Order[]
+  orderPayments                OrderPayment[]
+  dajiOrders                   DajiOrder[]
+  products                     Product[]
+  whatsapp_number              String?        @unique
+  whatsapp_number_country_code String?
+  google_id                    String?        @unique
+  sign_up_type                 String?
+  profile_completed            Boolean        @default(false)
+  verified_at                  DateTime?
+  searchKeywords               SearchKeyword[]
+  customerLeads                SalesLead[] @relation("CustomerLeads")
+  creatorLeads                 SalesLead[] @relation("CreatorLeads")
+  @@unique([email])
+  @@unique([phone])
+}
+
+model Brand {
+  id               Int      @id @default(autoincrement())
+  name             String
+  logo             String
+  slug             String
+  meta_title       String
+  meta_description String
+  createdAt        DateTime @default(now())
+  products         Product[]
+}
+
+model Product {
+  id               Int      @id @default(autoincrement())
+  name             String
+  added_by         String
+  user_id          Int
+  category_id      Int
+  subcategory_id   Int?
+  brand_id         Int
+  photos           Json?
+  thumbnail_img    String
+  video_provider   String?
+  video_link       String?
+  tags             String?
+  description      String?
+  unit_price       Float
+  variant_product  Boolean  @default(false)
+  attributes       Json?
+  choice_options   Json?
+  colors           Json?
+  variations       Json?
+  featured         Boolean  @default(false)
+  current_stock    Int      @default(0)
+  unit             String?
+  weight           Float?
+  min_qty          Int      @default(1)
+  discount         Float?   @default(0)
+  discount_type    String?
+  meta_title       String?
+  meta_description String?
+  meta_img         String?
+  pdf              String?
+  slug             String
+  rating           Float?   @default(0)
+  createdAt        DateTime @default(now())
+  isDelete         Boolean  @default(false)
+  sku              String?
+  three_d_products String?
+
+  user       User     @relation(fields: [user_id], references: [id])
+  category   Category @relation(fields: [category_id], references: [id])
+  brand      Brand    @relation(fields: [brand_id], references: [id])
+  stocks     Product_stocks[]
+
+  @@index([slug])
+}
+
+model Parent_Attribute {
+  id        Int                @id @default(autoincrement())
+  name      String             @unique
+  createdAt DateTime           @default(now())
+  values    Attribute_Values[]
+}
+
+model Attribute_Values {
+  id           Int              @id @default(autoincrement())
+  attribute_id Int
+  value        String           @unique
+  color_code   String?
+  attribute    Parent_Attribute @relation(fields: [attribute_id], references: [id], onDelete: Cascade)
+}
+
+model Color {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String
+  createdAt DateTime @default(now())
+}
+
+model Product_stocks {
+  id         Int      @id @default(autoincrement())
+  product_id Int
+  variant    String?
+  sku        String?
+  image      String?
+  createdAt  DateTime @default(now())
+  price      Int?
+  qty        Int?
+
+  product Product @relation(fields: [product_id], references: [id])
+}
+
+model Cart {
+  id                    Int        @id @default(autoincrement())
+  owner_id              Int?
+  user_id               Int
+  temp_user_id          Int?
+  address_id            Int        @default(0)
+  productId             String
+  productSkuId          Int?
+  variation             Json?
+  price                 Float      @default(0.0)
+  tax                   Float      @default(0.0)
+  shipping_cost         Float      @default(0.0)
+  shipping_type         String?
+  pickup_point          String?
+  carrier_id            Int?
+  discount              Float      @default(0.0)
+  product_referral_code String?
+  coupon_code           String?
+  coupon_applied        Boolean    @default(false)
+  quantity              Int        @default(1)
+  image                 String?
+  is_from_lead          Boolean    @default(false)
+  lead_id               Int?
+  created_by_id         Int?
+  created_at            DateTime   @default(now())
+  updated_at            DateTime   @updatedAt
+
+  product ProductShop     @relation(fields: [productId], references: [id])
+  sku     ProductSkuList? @relation(fields: [productSkuId], references: [id])
+  lead    SalesLead?      @relation(fields: [lead_id], references: [id], onDelete: SetNull)
+  creator User?           @relation("CartCreator", fields: [created_by_id], references: [id], onDelete: SetNull)
+}
+
+model Address {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  firstname    String
+  lastname     String?
+  address      String?
+  countryId    Int
+  stateId      Int
+  city         String
+  longitude    String?
+  latitude     String?
+  postalCode   String
+  country_code String
+  phone        String
+  setDefault   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  country      Country  @relation(fields: [countryId], references: [id])
+  state        State    @relation(fields: [stateId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model Country {
+  id        Int       @id @default(autoincrement())
+  code      String
+  name      String
+  zoneId    Int?
+  status    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  addresses Address[]
+  states    State[]
+}
+
+model State {
+  id        Int       @id @default(autoincrement())
+  name      String
+  countryId Int
+  status    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  addresses Address[]
+  country   Country   @relation(fields: [countryId], references: [id])
+}
+
+model Order {
+  id                    Int                  @id @default(autoincrement())
+  orderNo               String?
+  combined_order_id     Int?
+  user_id               Int
+  shipping_address_id   Int?
+  additional_info       String?
+  shipping_type         ShippingType?
+  shippingMethod        String?
+  shipping_charge       Float?
+  addressSnapshot       Json?
+  pickup_point_id       Int                  @default(0)
+  delivery_status       DeliveryStatus       @default(pending)
+  payment_type          String?              @db.VarChar(20)
+  payment_status        PaymentStatus        @default(unpaid)
+  payment_details       String?
+  sub_total             Float?
+  grand_total           Float?
+  coupon_discount       Float                @default(0.0)
+  code                  String?
+  tracking_code         String?              @db.VarChar(255)
+  date                  Int?
+  viewed                Int                  @default(0)
+  delivery_viewed       Int                  @default(1)
+  payment_status_viewed Int?                 @default(1)
+  commission_calculated Int?                 @default(0)
+  currency              Currency             @default(INR)
+  delivery_date         DateTime?
+  is_admin              Boolean              @default(false)
+  package_details       String?
+  message               String?
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
+  combinedOrder         Order?               @relation("CombinedOrder", fields: [combined_order_id], references: [id])
+  orders                Order[]              @relation("CombinedOrder")
+  user                  User                 @relation(fields: [user_id], references: [id])
+  orderDetails          OrderDetail[]
+  statusHistory         OrderStatusHistory[]
+  orderPayments         OrderPayment[]
+  dajiOrders            DajiOrder[]
+
+  @@index([user_id])
+  @@index([delivery_status])
+  @@index([payment_status])
+}
+
+model OrderDetail {
+  id       Int @id @default(autoincrement())
+  order_id Int
+
+  productId                      String
+  product_price                  Float?
+  product_title                  String?
+  product_en_title               String?
+  product_shop_name              String?
+  product_main_image_s3          String?
+  product_shipping_charge_sea    Float?
+  product_shipping_charge_air    Float?
+  product_weight                 Float?
+  product_measurement_type       MeasurementType @default(GRAM)
+  productSkuId                   Int?
+  productSku_s3Url               String?
+  productSku_price               Float?
+  productSku_properties          Json?
+  productSku_shipping_charge_sea Float?
+  productSku_shipping_charge_air Float?
+  productSku_weight              Float?
+  productSku_measurement_type    MeasurementType @default(GRAM)
+
+  image                 String?
+
+  variation             Json?
+  price                 Float?
+  tax                   Float?
+  shipping_cost         Float?
+  quantity              Int?
+  payment_status        PaymentStatus?
+  delivery_status       DeliveryStatus?
+  shipping_type         ShippingType?
+  pickup_point_id       Int?
+  product_referral_code String?
+  earn_point            Int?
+  created_at            DateTime        @default(now())
+  updated_at            DateTime        @updatedAt
+
+  order       Order           @relation(fields: [order_id], references: [id])
+  productshop ProductShop     @relation(fields: [productId], references: [id])
+  sku         ProductSkuList? @relation(fields: [productSkuId], references: [id])
+
+  @@index([order_id])
+  @@index([productId])
+}
+
+model OrderPayment {
+  id              Int           @id @default(autoincrement())
+  order_id        Int
+  user_id         Int
+  provider        String // razorpay | stripe | paypal | cod
+  method          String // upi | card | netbanking | cod
+  amount          Float         @default(0)
+  currency        Currency      @default(INR)
+  status          PaymentStatus @default(unpaid)
+  transactionId   String? // gateway txn id
+  gatewayOrderId  String? // razorpay_order_id
+  gatewayResponse Json? // full gateway response
+
+  order Order @relation(fields: [order_id], references: [id])
+  user  User  @relation(fields: [user_id], references: [id])
+}
+
+model OrderStatusHistory {
+  id         Int            @id @default(autoincrement())
+  order_id   Int
+  status     DeliveryStatus
+  changed_at DateTime
+  note       String?
+  order      Order          @relation(fields: [order_id], references: [id])
+}
+
+model DajiOrder {
+  id                   Int      @id @default(autoincrement())
+  order_id             Int?
+  user_id              Int?
+  supplier_id          String?
+  third_order_id       String?
+  daji_order_id        String?
+  success              Boolean  @default(false)
+  code                 Int?
+  message              String?
+  business_code        String?
+  business_message     String?
+  total_success_amount Int?
+  post_fee             Int?
+  account_period       Json?
+  failed_offer_list    Json?
+  order_list           Json?
+  sent_sku_count       Int?
+  request_payload      Json?
+  response_payload     Json?
+  warnings             Json?
+  trace_id             String?
+  daji_timestamp       BigInt?
+  source               String?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  order Order? @relation(fields: [order_id], references: [id], onDelete: SetNull)
+  user  User?  @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([order_id])
+  @@index([user_id])
+  @@index([daji_order_id])
+  @@index([third_order_id])
+}
+
+model HomeMainBanner {
+  id              Int      @id @default(autoincrement())
+  title           String
+  desktopImageUrl String
+  mobImageUrl     String
+  type            String?
+  targetlink      String?
+  priority        Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ApiProducts {
+  id                 Int      @id @default(autoincrement())
+  itemId             String   @unique
+  title              String
+  multiLanguageTitle String?
+  mainImageUrl       String
+  price              Float
+  couponPrice        Float?
+  shopName           String
+  inventory          Int?
+  sales              Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model ApiCategory {
+  id            BigInt        @id @default(autoincrement())
+  name          String
+  isLeaf        Boolean       @default(false)
+  categoryType  String?
+  parentId      BigInt?
+  level         Int?
+  image         String?
+  banner        String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  active        Boolean       @default(true)
+  description   String?
+  featuredone   Boolean       @default(false)
+  featuredthree Boolean       @default(false)
+  featuredtwo   Boolean       @default(false)
+  parent        ApiCategory?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children      ApiCategory[] @relation("CategoryChildren")
+}
+
+model MainBanner {
+  id              Int      @id @default(autoincrement())
+  title           String
+  desktopImageUrl String
+  mobImageUrl     String
+  type            String?
+  targetlink      String?
+  priority        Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("main_banners")
+}
+
+model CategorySubBanner {
+  id              Int      @id @default(autoincrement())
+  title           String
+  type            String?
+  targetlink      String?
+  priority        Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  desktopImageUrl String
+  urltype         String?
+
+  @@map("category_banners")
+}
+
+model TrendingVideos {
+  id              Int      @id @default(autoincrement())
+  title           String
+  slug            String?
+  video           String?
+  image           String?
+  urltype         String?
+  type            String?
+  targetlink      String?
+  productShopId   String?
+  price           String?
+  author          String?
+  authorThumbnail String?
+  like            Int      @default(0)
+  share           Int      @default(0)
+  priority        Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  productShop ProductShop?          @relation(fields: [productShopId], references: [id])
+  likes       TrendingVideoLikes[]
+  shares      TrendingVideoShares[]
+
+  @@map("trending_videos")
+}
+
+model Category {
+  id                Int                @id @default(autoincrement())
+  name              String
+  parent_id         Int?
+  banner            String?
+  icon              String?
+  cover_image       String?
+  slug              String
+  meta_title        String?
+  meta_description  String?
+  status            Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  parent            Category?          @relation("CategoryParent", fields: [parent_id], references: [id])
+  children          Category[]         @relation("CategoryParent")
+  products          ProductShop[]
+  localProducts     Product[]
+  priceRangeBanners PriceRangeBanner[]
+  pricingRuleConfigs PricingRuleConfig[]
+
+
+  @@index([slug])
+}
+
+model ProductShop {
+  id                  String          @id
+  price               Float?
+  promotion_price     Float?
+  coupon_price        Float?
+  slug                String?         @unique
+  inventory           Int?
+  title               String?
+  shipping_charge_sea Float?
+  shipping_charge_air Float?
+  weight              Float?
+  measurement_type    MeasurementType @default(GRAM)
+  en_title            String?
+  shop_name           String?
+  main_image_url      String?
+  main_image_s3       String?
+  tags                Json?
+  promotions          Json?
+  raw_data            Json?
+  month_sold          Int?
+  category_id         Int?
+  is_featured         Boolean         @default(false)
+  is_online_purchase  Boolean         @default(true)
+
+  is_available Boolean   @default(true)
+  is_active    Boolean   @default(true)
+  is_deleted   DateTime?
+
+  // New fields for image search
+  image_labels    Json? // Store detected labels/tags
+  dominant_colors Json? // Store color information
+
+  // Shipping Information
+  origin_address          String?
+  shipping_time_guarantee String?
+  shipping_weight         Float?
+  shipping_width          Float?
+  shipping_height         Float?
+  shipping_length         Float?
+
+  // Missing API Mappings
+  dajisaas_category_id   Int?
+  dajisaas_category_name String?
+  trade_score            String?
+  min_order_quantity     Int?
+  batch_number           Json?
+  product_cargo_number   String?
+  channel_price          Float?
+
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  productDetails   ProductDetail?
+  category         Category?                  @relation(fields: [category_id], references: [id])
+  cartEnquiryItems CartEnquiryItem[]
+  carts            Cart[]
+  trendingVideos   TrendingVideos[]
+  orderDetails     OrderDetail[]
+  imageEmbeddings  product_image_embeddings[]
+  attributes       ProductAttribute[]
+  materials        ProductMaterial[]
+  filterAttribute  ProductFilterAttribute?
+  videos           ProductVideo[]
+  bannerSections   BannerSectionProduct[]
+  comboProductItems ComboProductItem[]
+  shippingDetails  ProductShippingDetail[]
+
+  // Pricing engine fields
+  pricing_source       PricingSource? @default(AUTO)
+  custom_pricing_type  PricingType?
+  custom_margin        Float?
+  custom_fixed_amount  Float?
+  custom_selling_price Float?
+  pricingRules         PricingRuleConfig[]
+
+
+
+  @@index([category_id])
+  @@map("productshop")
+}
+
+model ProductDetail {
+  id                 Int                        @id @default(autoincrement())
+  item_id            String                     @unique
+  item_resource      String?
+  shop_name          String?
+  title              String?
+  title_en           String?
+  description_en     String?
+  price              Float?
+  promotion_price    Float?
+  coupon_price       Float?
+  shop_id            String?
+  promotion_displays Json?
+  tags               Json?
+  raw_detail_data    Json?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  descriptions       ProductDescription[]
+  productImages      ProductImage[]
+  multiLanguageInfos ProductMultiLanguageInfo[]
+  productProperties  ProductProperty[]
+  propertyImages     ProductPropertyImage[]
+  skuList            ProductSkuList[]
+  productShop        ProductShop?               @relation(fields: [item_id], references: [id])
+  translatedImages   ProductTranslatedImage[]
+  shippingDetails    ProductShippingDetail[]
+
+  @@index([shop_id])
+  @@map("productdetail")
+}
+
+model ProductTranslatedImage {
+  id        Int           @id @default(autoincrement())
+  productId Int
+  imageUrl  String?
+  s3Url     String?
+  product   ProductDetail @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId], map: "idx_translated_image_product_id")
+  @@map("product_translated_image")
+}
+
+model ProductSkuList {
+  id                  Int               @id @default(autoincrement())
+  productId           Int
+  picUrl              String?
+  s3Url               String?
+  quantity            Int?
+  promotionPrice      Float?
+  price               Float?
+  shipping_charge_sea Float?
+  shipping_charge_air Float?
+  weight              Float?
+  shipping_length     Float?
+  shipping_width      Float?
+  shipping_height     Float?
+  measurement_type    MeasurementType   @default(GRAM)
+  skuId               String?
+  properties          Json?
+  sales               Int?
+  product             ProductDetail     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  carts               Cart[]
+  orderDetails        OrderDetail[]
+  cartEnquiryItems    CartEnquiryItem[]
+  shippingDetails     ProductShippingDetail[]
+
+  @@index([productId])
+  @@map("product_sku_list")
+}
+
+model ProductPropertyImage {
+  id         Int           @id @default(autoincrement())
+  productId  Int
+  imageUrl   String?
+  s3Url      String?
+  properties String?
+  product    ProductDetail @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId], map: "idx_property_image_product_id")
+  @@map("product_property_image")
+}
+
+model ProductImage {
+  id        Int           @id @default(autoincrement())
+  productId Int
+  imageUrl  String?
+  s3Url     String?
+  product   ProductDetail @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId], map: "idx_product_image_product_id")
+  @@map("product_image")
+}
+
+model ProductProperty {
+  id        Int           @id @default(autoincrement())
+  productId Int
+  propId    BigInt?
+  propName  String?
+  valueId   BigInt?
+  valueName String?
+  product   ProductDetail @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId], map: "idx_product_property_product_id")
+  @@map("product_property")
+}
+
+model ProductMultiLanguageInfo {
+  id           Int           @id @default(autoincrement())
+  productId    Int
+  language     String?
+  title        String?
+  description  String?
+  mainImageUrl String?
+  s3Url        String?
+  data         Json?
+  product      ProductDetail @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_multi_language_info")
+}
+
+model ProductDescription {
+  id        Int           @id @default(autoincrement())
+  productId Int
+  content   String?
+  product   ProductDetail @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId], map: "idx_product_description_product_id")
+  @@map("product_description")
+}
+
+model settings {
+  id    Int     @id @default(autoincrement())
+  title String?
+  value Float?
+}
+
+model CartEnquiry {
+  id        Int           @id @default(autoincrement())
+  name      String?
+  email     String?
+  phone     String?
+  message   String?
+  address   String?
+  total     Float?
+  status    EnquiryStatus @default(pending)
+  createdAt DateTime      @default(now())
+
+  items CartEnquiryItem[]
+}
+
+model CartEnquiryItem {
+  id           Int    @id @default(autoincrement())
+  enquiryId    Int
+  productId    String
+  productSkuId Int
+  price        Float
+  quantity     Int
+
+  enquiry CartEnquiry @relation(fields: [enquiryId], references: [id])
+
+  product ProductShop    @relation(fields: [productId], references: [id])
+  sku     ProductSkuList @relation(fields: [productSkuId], references: [id])
+}
+
+model TrendingVideoLikes {
+  id              Int      @id @default(autoincrement())
+  userId          Int?
+  deviceId        String?
+  trendingVideoId Int
+  isLiked         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  trendingVideos TrendingVideos @relation(fields: [trendingVideoId], references: [id])
+
+  @@unique([userId, trendingVideoId])
+  @@unique([deviceId, trendingVideoId])
+}
+
+model TrendingVideoShares {
+  id              Int      @id @default(autoincrement())
+  trendingVideoId Int
+  userId          Int?
+  deviceId        String?
+  createdAt       DateTime @default(now())
+
+  trendingVideo TrendingVideos @relation(fields: [trendingVideoId], references: [id])
+}
+
+model PriceRangeBanner {
+  id               Int      @id @default(autoincrement())
+  title            String?
+  image            String?
+  priceMin         Int?
+  priceMax         Int?
+  category_id      Int?
+  meta_title       String?
+  meta_description String?
+  meta_keyword     String?
+  og_image         String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  category Category? @relation(fields: [category_id], references: [id])
+}
+
+model product_image_embeddings {
+  id             BigInt   @id @default(autoincrement())
+  product_id     String
+  image_url      String
+  image_type     String?
+  clip_embedding Json? // 3072 dimensions - from OpenAI CLIP
+  dino_embedding Json? // 3072 dimensions - from vision model
+  created_at     DateTime @default(now())
+
+  product ProductShop @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@index([product_id], map: "product_image_embeddings_product_id_idx")
+  @@map("product_image_embeddings")
+}
+
+model CategorypageBanner {
+  id              Int      @id @default(autoincrement())
+  title           String
+  type            String?
+  targetlink      String?
+  priority        Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  desktopImageUrl String
+  urltype         String?
+
+  @@map("categorypagebanners")
+}
+
+model ProductAttribute {
+  id         Int     @id @default(autoincrement())
+  product_id String
+  group_name String? // 基本信息
+  name       String // 品牌, 风格, 材质 etc
+  name_en    String?
+  value      String // other, 其他 etc
+  value_en   String?
+
+  product ProductShop @relation(fields: [product_id], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([product_id])
+  @@map("product_attributes")
+}
+
+model ProductMaterial {
+  id         Int     @id @default(autoincrement())
+  product_id String
+  name_en    String?
+  value_en   String?
+
+  product ProductShop @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([product_id])
+  @@index([value_en])
+  @@index([product_id, value_en])
+  @@map("product_materials")
+}
+
+model ProductFilterAttribute {
+  id                Int     @id @default(autoincrement())
+  product_id        String  @unique
+  material          String?
+  type              String?
+  treatment_process String?
+
+  product ProductShop @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([material])
+  @@index([type])
+  @@index([treatment_process])
+  @@map("product_filter_attributes")
+}
+
+model ProductVideo {
+  id         Int      @id @default(autoincrement())
+  product_id String
+  video_url  String
+  video_s3   String?
+  cover_url  String?
+  createdAt  DateTime @default(now())
+
+  product ProductShop @relation(fields: [product_id], references: [id])
+
+  @@index([product_id])
+  @@map("product_videos")
+}
+
+enum PaymentStatus {
+  unpaid
+  paid
+  refunded
+  failed
+}
+
+enum DeliveryStatus {
+  pending
+  confirmed
+  processing
+  shipped
+  delivered
+  cancelled
+  return_requested
+  returned
+}
+
+enum ShippingType {
+  home_delivery
+  pickup_point
+}
+
+enum MeasurementType {
+  KG
+  GRAM
+  LITER
+  ML
+  PCS
+}
+
+enum EnquiryStatus {
+  pending
+  reviewing
+  contacted
+  waiting_for_customer
+  completed
+  cancelled
+}
+
+enum Currency {
+  INR
+  USD
+  AED
+}
+
+model ShipmentData {
+  id          Int     @id @default(autoincrement())
+  client_name String?
+
+  // PRODUCT INFO
+  product_name String?
+  category     String?
+  material     String?
+
+  // PRODUCT DIMENSIONS (PER PIECE)
+  length_cm Float?
+  width_cm  Float?
+  height_cm Float?
+  weight_kg Float?
+
+  // PACKING (PER CARTON)
+  packing_length_cm Float?
+  packing_width_cm  Float?
+  packing_height_cm Float?
+  carton_type       String? @default("Standard Carton")
+
+  items_per_carton Int @default(1)
+  total_cartons    Int @default(1)
+
+  // ✅ DERIVED VALUES (IMPORTANT SPLIT)
+  cbm_per_carton Float? // (L×W×H)/1,000,000
+  total_cbm      Float? // cbm_per_carton × cartons
+
+  vol_weight_per_carton Float? // (L×W×H)/5000
+  total_vol_weight      Float?
+
+  gross_weight_total Float? // actual weight × qty
+  chargeable_weight  Float? // MAX(gross, volumetric)
+
+  shipping_mode String? // "AIR" | "SEA" | "COURIER"
+  rate_per_kg   Float? // e.g. 500
+  shipping_cost Float?
+
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now())
+}
+
+model BannerSection {
+  id               Int      @id @default(autoincrement())
+  title            String
+  banner_image     String?
+  category_id      Int?
+  slug             String?  @unique
+  meta_title       String?
+  meta_description String?
+  meta_keywords    String?
+  isActive         Boolean  @default(true)
+  priority         Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  products BannerSectionProduct[]
+
+  @@map("banner_sections")
+}
+
+model BannerSectionProduct {
+  id                Int    @id @default(autoincrement())
+  banner_section_id Int
+  product_id        String
+  priority          Int    @default(0)
+
+  banner_section BannerSection @relation(fields: [banner_section_id], references: [id], onDelete: Cascade)
+  product        ProductShop   @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([banner_section_id, product_id])
+  @@index([banner_section_id])
+  @@index([product_id])
+  @@map("banner_section_products")
+}
+
+model PricingRule {
+  id        Int   @id @default(autoincrement())
+  max_price Float // upper limit (INR)
+  
+  // Tier 1 (Base MOQ)
+  tier1_min_qty Int
+  tier1_margin  Float
+
+  // Tier 2 (Volume Discount)
+  tier2_min_qty Int?
+  tier2_margin  Float?
+
+  // Tier 3 (Bulk Discount)
+  tier3_min_qty Int?
+  tier3_margin  Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([max_price])
+  @@map("pricing_rules")
+}
+
+
+model SearchKeyword {
+  id         Int      @id @default(autoincrement())
+  keyword    String
+  userId     Int?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([keyword])
+  @@index([userId])
+}
+
+
+model InHouseProduct {
+  id        Int      @id @default(autoincrement())
+  productId String   @unique
+  name      String
+  price     Float?
+  imageUrl  String?
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("inhouse_products")
+}
+
+
+
+model CarouselImage {
+  id          Int      @id @default(autoincrement())
+  title       String?
+  description String?
+  image       String
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("carousel_images")
+}
+
+model AppVersion {
+  id              Int      @id @default(autoincrement())
+  platform        Platform
+  latestVersion   String
+  minimumVersion  String
+  forceUpdate     Boolean  @default(false)
+  updateMessage   String?
+  playStoreUrl    String?
+  appStoreUrl     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum Platform {
+  android
+  ios
+}
+
+model Notification {
+  id            Int                 @id @default(autoincrement())
+  title         String
+  message       String
+  image         String?
+  target        NotificationTarget
+  targetValue   String?             // userId or topic name
+  deepLink      String?
+  scheduleAt    DateTime?
+  status        NotificationStatus  @default(DRAFT)
+
+  createdBy     Int
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  logs          NotificationLog[]
+}
+
+model NotificationLog {
+  id               Int      @id @default(autoincrement())
+  notificationId   Int
+  successCount     Int       @default(0)
+  failedCount      Int       @default(0)
+  sentAt           DateTime?
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+}
+
+
+enum NotificationStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  FAILED
+}
+
+enum NotificationTarget {
+  ALL
+  USER
+  TOPIC
+}
+
+
+
+model ComboProduct {
+  id                Int       @id @default(autoincrement())
+
+  name              String
+  slug              String    @unique
+
+  description       String?
+  short_description String?
+  internal_notes    String?
+
+  thumbnail         String?
+  banner            String?
+  gallery_images    Json?
+
+  selling_price     Float
+  original_price    Float?
+  compare_at_price  Float?
+  discount_percent  Float?
+  savings_amount    Float?
+
+  sku               String?   @unique
+
+  stock             Int       @default(0)
+
+  status            Boolean   @default(true)
+  featured          Boolean   @default(false)
+  show_on_homepage   Boolean   @default(false)
+  allow_purchase    Boolean   @default(true)
+
+  meta_title        String?
+  meta_description  String?
+  meta_keywords     String?
+  og_image          String?
+
+  is_deleted        DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  items             ComboProductItem[]
+
+  @@map("combo_products")
+}
+
+model ComboProductItem {
+  id              Int         @id @default(autoincrement())
+
+  comboProductId  Int
+  productId       String
+  quantity        Int         @default(1)
+  sort_order      Int         @default(0)
+
+  comboProduct    ComboProduct @relation(fields: [comboProductId], references: [id], onDelete: Cascade)
+  product         ProductShop  @relation(fields: [productId], references: [id])
+
+  @@unique([comboProductId, productId])
+
+  @@map("combo_product_items")
+}
+
+
+enum PricingScope {
+  GLOBAL
+  CATEGORY
+  SHOP
+  PRODUCT
+}
+
+enum PricingType {
+  PERCENTAGE_MARGIN
+  FIXED_AMOUNT
+  FIXED_SELLING_PRICE
+}
+
+enum PricingSource {
+  AUTO
+  GLOBAL
+  CATEGORY
+  SHOP
+  PRODUCT
+}
+
+
+model PricingRuleConfig {
+  id               Int           @id @default(autoincrement())
+  name             String?
+  scope            PricingScope  @default(GLOBAL)
+  
+  category_id      Int?
+  shop_name        String?
+  product_id       String?
+
+  min_price        Float         @default(0)
+  max_price        Float         @default(999999)
+
+  pricing_type     PricingType   @default(PERCENTAGE_MARGIN)
+
+  margin_percent   Float?
+  fixed_amount     Float?
+  fixed_price      Float?
+
+  tier1_min_qty    Int           @default(1)
+  tier1_type       PricingType?
+  tier1_value      Float?
+
+  tier2_min_qty    Int?
+  tier2_type       PricingType?
+  tier2_value      Float?
+
+  tier3_min_qty    Int?
+  tier3_type       PricingType?
+  tier3_value      Float?
+
+  priority         Int           @default(0)
+  is_active        Boolean       @default(true)
+  is_deleted       Boolean       @default(false)
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  category         Category?     @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  productShop      ProductShop?  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  logs             PricingLog[]
+
+  @@index([scope, is_active, is_deleted])
+  @@index([category_id])
+  @@index([shop_name])
+  @@index([product_id])
+  @@index([min_price, max_price])
+  @@map("pricing_rule_configs")
+}
+
+model PricingLog {
+  id             Int                @id @default(autoincrement())
+  user_id        Int?
+  user_name      String?
+  product_id     String?
+  product_title  String?
+  rule_id        Int?
+  rule_name      String?
+  scope          PricingScope?
+  action         String
+  old_price      Float?
+  new_price      Float?
+  old_rule       String?
+  new_rule       String?
+  reason         String?
+  createdAt      DateTime           @default(now())
+
+  rule           PricingRuleConfig? @relation(fields: [rule_id], references: [id], onDelete: SetNull)
+
+  @@index([product_id])
+  @@index([rule_id])
+  @@index([createdAt])
+  @@map("pricing_logs")
+}
+
+enum ShippingSourceTable {
+  PRODUCTSHOP
+  PRODUCTDETAIL
+  PRODUCT_SKU_LIST
+  MANUAL_OVERRIDE
+  AI_ESTIMATE
+}
+
+model ProductShippingDetail {
+  id                      Int                 @id @default(autoincrement())
+  
+  // Explicit Source Identification
+  source_table            ShippingSourceTable @default(PRODUCTSHOP) // Identifies where data came from: PRODUCTSHOP or PRODUCTDETAIL
+  
+  // Identifiers & Foreign Keys
+  offerId                 String?             // 1688 Offer ID (e.g., "743254853265")
+  productShopId           String?             // Foreign key to ProductShop.id
+  productDetailId         Int?                // Foreign key to ProductDetail.id
+  productSkuId            Int?                // Foreign key to ProductSkuList.id (if SKU specific)
+
+  // Package Weight & Dimensions
+  weight                  Float?              @default(0.0)
+  length                  Float?              @default(0.0)
+  width                   Float?              @default(0.0)
+  height                  Float?              @default(0.0)
+  measurement_type        MeasurementType     @default(GRAM)
+
+  // Official Platform Measurements (from 1688 raw_data.productShippingInfo)
+  officialWeight          Float?
+  officialLength          Float?
+  officialWidth           Float?
+  officialHeight          Float?
+  pkgSizeSource           String?             // e.g., "商家自填"
+
+  // AI Estimated Weight & Accuracy (from 1688 raw_data.productShippingInfo.skuShippingDetails)
+  aiWeight                Float?
+  aiWeightAccuracy        String?             // e.g., "80%"
+
+  // Additional Shipping Identifiers & Metadata
+  skuId                   String?             // 1688 SKU ID (e.g. "5836357801929")
+  specId                  String?             // SKU specId (e.g. "2579a83330f9b87e6c10fc53a17c64c7")
+  productCargoNumber      String?             // Cargo/Article Number (e.g. "A13")
+  unit                    String?             // Sales Unit (e.g. "Kilogram")
+  skuProperties           Json?               // SKU attributes/properties
+  price                   Float?              @default(0.0)
+  promotionPrice          Float?              @default(0.0)
+  quantity                Int?                @default(0)
+
+
+
+  // Shipping Charges
+  shipping_charge_sea     Float?              @default(0.0)
+  shipping_charge_air     Float?              @default(0.0)
+  postFee                 Float?              @default(0.0)
+
+  // Logistics Origin
+  sendGoodsAddressText    String?             // e.g. "浙江省金华市"
+  shippingTimeGuarantee   String?
+
+  // Raw JSON
+  skuShippingDetails      Json?
+  skuShippingInfoList     Json?
+
+  // Timestamps
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  // Foreign Key Relations
+  productShop             ProductShop?        @relation(fields: [productShopId], references: [id], onDelete: Cascade)
+  productDetail           ProductDetail?      @relation(fields: [productDetailId], references: [id], onDelete: Cascade)
+  productSku              ProductSkuList?     @relation(fields: [productSkuId], references: [id], onDelete: Cascade)
+
+  @@index([source_table])
+  @@index([offerId])
+  @@index([productShopId])
+  @@index([productDetailId])
+  @@index([productSkuId])
+  @@map("product_shipping_details")
+}
+
+model SalesLead {
+  id             Int             @id @default(autoincrement())
+  user_id        Int?
+  created_by_id  Int?
+  customer_name  String
+  email          String?
+  phone          String?
+  quantity       Int             @default(1)
+  shipping_type  String          @default("Air")
+  total_price    Float           @default(0.0)
+  status         String          @default("New")
+  lead_type      String?         @default("Single")
+  priority       String?         @default("Prospect")
+  follow_up_date DateTime?
+  notes          String?
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+
+  user    User?           @relation("CustomerLeads", fields: [user_id], references: [id], onDelete: SetNull)
+  creator User?           @relation("CreatorLeads", fields: [created_by_id], references: [id], onDelete: SetNull)
+  items   SalesLeadItem[]
+
+  @@index([user_id])
+  @@index([created_by_id])
+  @@index([status])
+  @@index([priority])
+  @@index([lead_type])
+  @@map("sales_leads")
+}
+
+model SalesLeadItem {
+  id             Int       @id @default(autoincrement())
+  lead_id        Int
+  product_id     String?
+  product_sku_id Int?
+  product_name   String
+  product_image  String?
+  size           String?
+  quantity       Int       @default(1)
+  unit_price     Float     @default(0.0)
+  total_price    Float     @default(0.0)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  lead SalesLead @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+
+  @@index([lead_id])
+  @@index([product_sku_id])
+  @@map("sales_lead_items")
+}

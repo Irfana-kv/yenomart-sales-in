@@ -1,0 +1,31 @@
+-- CreateTable
+CREATE TABLE "ShipmentData" (
+    "id" SERIAL NOT NULL,
+    "client_name" TEXT,
+    "product_name" TEXT,
+    "category" TEXT,
+    "material" TEXT,
+    "length_cm" DOUBLE PRECISION,
+    "width_cm" DOUBLE PRECISION,
+    "height_cm" DOUBLE PRECISION,
+    "weight_kg" DOUBLE PRECISION,
+    "packing_length_cm" DOUBLE PRECISION,
+    "packing_width_cm" DOUBLE PRECISION,
+    "packing_height_cm" DOUBLE PRECISION,
+    "carton_type" TEXT DEFAULT 'Standard Carton',
+    "items_per_carton" INTEGER NOT NULL DEFAULT 1,
+    "total_cartons" INTEGER NOT NULL DEFAULT 1,
+    "cbm_per_carton" DOUBLE PRECISION,
+    "total_cbm" DOUBLE PRECISION,
+    "vol_weight_per_carton" DOUBLE PRECISION,
+    "total_vol_weight" DOUBLE PRECISION,
+    "gross_weight_total" DOUBLE PRECISION,
+    "chargeable_weight" DOUBLE PRECISION,
+    "shipping_mode" TEXT,
+    "rate_per_kg" DOUBLE PRECISION,
+    "shipping_cost" DOUBLE PRECISION,
+    "quantity" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ShipmentData_pkey" PRIMARY KEY ("id")
+);
